@@ -1,5 +1,6 @@
 """Interactive MedGuide chat. Usage: python chat.py [--session-id NAME]"""
 import argparse
+import re
 
 from medguide.agent import build_agent
 
@@ -7,7 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--session-id", default="medguide-demo")
 args = parser.parse_args()
 
-agent = build_agent(session_id=args.session_id)
+agent = build_agent(session_id=args.session_id, quiet=True)
 print("MedGuide - plain-language medicine explainer. Type 'quit' to exit.")
 print('Try: "My prescription says dolo, ecosprin and warfarin. Explain them simply."\n')
 while True:
@@ -20,6 +21,6 @@ while True:
         break
     if not text:
         continue
-    print("\nMedGuide: ", end="")
-    agent(text)
-    print()
+    reply = str(agent(text))
+    reply = re.sub(r"<thinking>.*?</thinking>", "", reply, flags=re.S).strip()
+    print("\nMedGuide:", reply, "\n")

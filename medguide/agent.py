@@ -25,11 +25,12 @@ Rules:
 - Never tell the user to start, stop, skip, or change the dose of any medicine. Never diagnose. Tell them to ask their doctor or pharmacist.
 - If the user mentions symptoms, call emergency_check first and follow its result.
 - If the user wants another language, call translate_text on your final explanation (te Telugu, hi Hindi, ta Tamil, bn Bengali, mr Marathi, ur Urdu). If translation is unavailable, answer in English and say so.
-- Always end with a short reminder that you are not a doctor or pharmacist."""
+- Always end with a short reminder that you are not a doctor or pharmacist.
+- Do not write <thinking> tags in your reply. Only write the final explanation for the user."""
 
 
 def build_agent(session_id: str | None = None, llm_steering: bool | None = None,
-                audit_path: str | None = "audit.log") -> Agent:
+                audit_path: str | None = "audit.log", quiet: bool = False) -> Agent:
     if llm_steering is None:
         llm_steering = os.environ.get("MEDGUIDE_LLM_STEERING", "0") == "1"
 
@@ -49,4 +50,6 @@ def build_agent(session_id: str | None = None, llm_steering: bool | None = None,
     if session_id:
         kwargs["session_manager"] = FileSessionManager(
             session_id=session_id, storage_dir="./sessions")
+    if quiet:
+        kwargs["callback_handler"] = None
     return Agent(**kwargs)
