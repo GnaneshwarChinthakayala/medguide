@@ -6,7 +6,7 @@ from strands.agent.conversation_manager import SlidingWindowConversationManager
 from strands.models import BedrockModel
 from strands.session.file_session_manager import FileSessionManager
 
-from .hooks import AuditLogHook, RateLimiterHook
+from .hooks import AuditLogHook, InteractionOrderHook, RateLimiterHook
 from .steering import InteractionFirstHandler, SafetyGuardrailHandler
 from .tools import (check_interactions, emergency_check, get_drug_info,
                     parse_prescription, translate_text)
@@ -25,6 +25,7 @@ Rules:
 - Never tell the user to start, stop, skip, or change the dose of any medicine. Never diagnose. Tell them to ask their doctor or pharmacist.
 - If the user mentions symptoms, call emergency_check first and follow its result.
 - If the user wants another language, call translate_text on your final explanation (te Telugu, hi Hindi, ta Tamil, bn Bengali, mr Marathi, ur Urdu). If translation is unavailable, answer in English and say so.
+- translate_text is a TOOL, not a skill. Call it directly, never through the skills tool. Never write a translation yourself. If it returns TRANSLATION_UNAVAILABLE, answer in English and say translation is not available. Only pass text from your tool results to translate_text; never add new facts.
 - Always end with a short reminder that you are not a doctor or pharmacist.
 - Do not write <thinking> tags in your reply. Only write the final explanation for the user."""
 
@@ -42,7 +43,7 @@ def build_agent(session_id: str | None = None, llm_steering: bool | None = None,
         model=BedrockModel(model_id=MODEL_ID),
         tools=[parse_prescription, check_interactions, get_drug_info,
                emergency_check, translate_text],
-        hooks=[RateLimiterHook(max_calls=6), AuditLogHook(path=audit_path)],
+        hooks=[RateLimiterHook(max_calls=6), InteractionOrderHook(), AuditLogHook(path=audit_path)],
         plugins=plugins,
         system_prompt=SYSTEM_PROMPT,
         conversation_manager=SlidingWindowConversationManager(window_size=20),

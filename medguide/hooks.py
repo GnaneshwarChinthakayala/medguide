@@ -47,3 +47,26 @@ class AuditLogHook(HookProvider):
                     f.write(line + "\n")
             except OSError:
                 pass
+
+
+class InteractionOrderHook(HookProvider):
+    """Deterministic rule: no medicine is explained until interactions were checked."""
+
+    def __init__(self):
+        self.checked = False
+
+    def register_hooks(self, registry: HookRegistry) -> None:
+        registry.add_callback(BeforeInvocationEvent, self.reset)
+        registry.add_callback(BeforeToolCallEvent, self.check)
+
+    def reset(self, event: BeforeInvocationEvent) -> None:
+        self.checked = False
+
+    def check(self, event: BeforeToolCallEvent) -> None:
+        name = event.tool_use["name"]
+        if name == "check_interactions":
+            self.checked = True
+        elif name == "get_drug_info" and not self.checked:
+            event.cancel_tool = ("Safety first: call check_interactions with ALL of the "
+                                 "user's medicines before explaining any medicine. "
+                                 "Then call get_drug_info again.")
